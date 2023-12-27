@@ -55,6 +55,38 @@ namespace CornishRoom
             return new Point3D(p.x / z, p.y / z, p.z / z);
         }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         public static Point3D operator +(Point3D p1, Point3D p2)
         {
             return new Point3D(p1.x + p2.x, p1.y + p2.y, p1.z + p2.z);

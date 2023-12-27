@@ -8,11 +8,11 @@ namespace CornishRoom
 {
     public class Material
     {
-        public float reflection;    // коэффициент отражения
-        public float refraction;    // коэффициент преломления
-        public float ambient;       // коэффициент фонового освещения
-        public float diffuse;       // коэффициент диффузного освещения
-        public float environment;   // коэффициент преломления среды
+        public float reflection;    // отражения
+        public float refraction;    // преломления
+        public float ambient;       // фонового освещения
+        public float diffuse;       // диффузного освещения
+        public float environment;   // преломления среды
         public Point3D color;       // цвет материала
 
         public Material(float refl, float refr, float amb, float dif, float env = 1)

@@ -8,36 +8,42 @@ using System.Drawing;
 namespace CornishRoom
 {
 
-    public class Figure
+    public class Object
     {
-        public static float eps = 0.0001f;
-        public List<Point3D> points = new List<Point3D>(); 
-        public List<Side> sides = new List<Side>();        
-        public Material fMaterial;
-        public Figure() { }
+        public static float eps = 0.0001f; 
+        public List<Point3D> points = new List<Point3D>(); // Список точек в трехмерном пространстве
+        public List<Polygon> sides = new List<Polygon>(); // стороны фигуры
+        public Material fMaterial; // Материал для фигуры
 
-        public Figure(Figure f)
+        public Object() { } 
+
+        public Object(Object f)
         {
             foreach (Point3D p in f.points)
-                points.Add(new Point3D(p));
+                points.Add(new Point3D(p)); 
 
-            foreach (Side s in f.sides)
+          
+            foreach (Polygon s in f.sides)
             {
-                sides.Add(new Side(s));
-                sides.Last().host = this;
-
+                sides.Add(new Polygon(s)); 
+                sides.Last().host = this; 
             }
         }
+
+        // Метод определения пересечения луча
         public bool RayIntersectsTriangle(Ray ray, Point3D p0, Point3D p1, Point3D p2, out float intersection)
         {
-            intersection = -1;
+            intersection = -1; // Инициализация переменной для хранения значения пересечения
+
+            // Вычисляем векторы, составляющие стороны треугольника
             Point3D edge1 = p1 - p0;
             Point3D edge2 = p2 - p0;
             Point3D h = ray.direction * edge2;
             float a = Point3D.scalar(edge1, h);
 
+            // Проверяем, параллелен ли луч треугольнику
             if (a > -eps && a < eps)
-                return false; // The ray is parallel to the triangle.
+                return false; // Луч параллелен треугольнику
 
             float f = 1.0f / a;
             Point3D s = ray.start - p0;
@@ -57,32 +63,37 @@ namespace CornishRoom
             if (t > eps)
             {
                 intersection = t;
-                return true;
+                return true; // Есть пересечение луча с треугольником
             }
             else
             {
-                return false; // There is an intersection of lines but not rays.
+                return false;
             }
         }
 
+        // Метод определения пересечения луча с фигурой
         public virtual bool FigureIntersection(Ray ray, out float intersect, out Point3D normal)
         {
-            intersect = 0;
-            normal = null;
-            Side intersectedSide = null;
+            intersect = 0; 
+            normal = null; 
+            Polygon intersectedSide = null; 
 
-            foreach (Side figureSide in sides)
+            foreach (Polygon figureSide in sides)
             {
-                if (figureSide.points.Count == 3) // Triangle side
+                // сторона треугольник
+                if (figureSide.points.Count == 3)
                 {
+                    // пересечение луча с треугольником
                     if (RayIntersectsTriangle(ray, figureSide.getPoint(0), figureSide.getPoint(1), figureSide.getPoint(2), out float t) && (intersect == 0 || t < intersect))
                     {
                         intersect = t;
                         intersectedSide = figureSide;
                     }
                 }
-                else if (figureSide.points.Count == 4) // Quadrilateral side
+                // сторона четырехугольник
+                else if (figureSide.points.Count == 4)
                 {
+                    // пересечение луча с двумя треугольниками, составляющими четырехугольник
                     if (RayIntersectsTriangle(ray, figureSide.getPoint(0), figureSide.getPoint(1), figureSide.getPoint(3), out float t) && (intersect == 0 || t < intersect))
                     {
                         intersect = t;
@@ -98,14 +109,16 @@ namespace CornishRoom
 
             if (intersect != 0)
             {
-                normal = Side.norm(intersectedSide);
-                fMaterial.color = new Point3D(intersectedSide.drawing_pen.Color.R / 255f, intersectedSide.drawing_pen.Color.G / 255f, intersectedSide.drawing_pen.Color.B / 255f);
-                return true;
+                normal = Polygon.norm(intersectedSide); // Получаем нормаль к пересекаемой стороне
+                fMaterial.color = new Point3D(intersectedSide.drawing_pen.Color.R / 255f, intersectedSide.drawing_pen.Color.G / 255f, intersectedSide.drawing_pen.Color.B / 255f); // Устанавливаем цвет материала
+                return true; // Есть пересечение луча с фигурой
             }
 
-            return false;
+            return false; // Нет пересечения луча с фигурой
         }
-        public float[,] GetMatrix()
+    
+
+    public float[,] GetMatrix()
         {
             var res = new float[points.Count, 4];
             for (int i = 0; i < points.Count; i++)
@@ -199,7 +212,7 @@ namespace CornishRoom
 
         public void SetPen(Pen dw)
         {
-            foreach (Side s in sides)
+            foreach (Polygon s in sides)
                 s.drawing_pen = dw;
         }
 
@@ -263,9 +276,9 @@ namespace CornishRoom
             return MultiplyMatrix(transform_matrix, scaleMatrix);
         }
 
-        static public Figure get_Cube(float sz)
+        static public Object get_Cube(float sz)
         {
-            Figure res = new Figure();
+            Object res = new Object();
             res.points.Add(new Point3D(sz / 2, sz / 2, sz / 2)); // 0 
             res.points.Add(new Point3D(-sz / 2, sz / 2, sz / 2)); // 1
             res.points.Add(new Point3D(-sz / 2, sz / 2, -sz / 2)); // 2
@@ -276,34 +289,34 @@ namespace CornishRoom
             res.points.Add(new Point3D(-sz / 2, -sz / 2, -sz / 2)); // 6
             res.points.Add(new Point3D(sz / 2, -sz / 2, -sz / 2)); // 7
 
-            Side s = new Side(res);
+            Polygon s = new Polygon(res);
             s.points.AddRange(new int[] { 3, 2, 1, 0 });
             res.sides.Add(s);
 
-            s = new Side(res);
+            s = new Polygon(res);
             s.points.AddRange(new int[] { 4, 5, 6, 7 });
             res.sides.Add(s);
 
-            s = new Side(res);
+            s = new Polygon(res);
             s.points.AddRange(new int[] { 2, 6, 5, 1 });
             res.sides.Add(s);
 
-            s = new Side(res);
+            s = new Polygon(res);
             s.points.AddRange(new int[] { 0, 4, 7, 3 });
             res.sides.Add(s);
 
-            s = new Side(res);
+            s = new Polygon(res);
             s.points.AddRange(new int[] { 1, 5, 4, 0 });
             res.sides.Add(s);
 
-            s = new Side(res);
+            s = new Polygon(res);
             s.points.AddRange(new int[] { 2, 3, 7, 6 });
             res.sides.Add(s);
             return res;
         }
-        static public Figure get_Rectangle(float width, float depth, float height)
+        static public Object get_Rectangle(float width, float depth, float height)
         {
-            Figure res = new Figure();
+            Object res = new Object();
             // Основание прямоугольника в плоскости XY
             res.points.Add(new Point3D(width / 2, depth / 2, 0));        // 0 
             res.points.Add(new Point3D(-width / 2, depth / 2, 0));       // 1
@@ -316,34 +329,82 @@ namespace CornishRoom
             res.points.Add(new Point3D(-width / 2, -depth / 2, height));  // 6
             res.points.Add(new Point3D(width / 2, -depth / 2, height));   // 7
 
-            Side s = new Side(res);
+            Polygon s = new Polygon(res);
             s.points.AddRange(new int[] { 0, 1, 2, 3 }); // Основание
             res.sides.Add(s);
 
             // Стороны параллелепипеда
-            s = new Side(res);
+            s = new Polygon(res);
             s.points.AddRange(new int[] { 4, 5, 1, 0 });
             res.sides.Add(s);
 
-            s = new Side(res);
+            s = new Polygon(res);
             s.points.AddRange(new int[] { 5, 6, 2, 1 });
             res.sides.Add(s);
 
-            s = new Side(res);
+            s = new Polygon(res);
             s.points.AddRange(new int[] { 6, 7, 3, 2 });
             res.sides.Add(s);
 
-            s = new Side(res);
+            s = new Polygon(res);
             s.points.AddRange(new int[] { 7, 4, 0, 3 });
             res.sides.Add(s);
 
             // Высота прямоугольника
-            s = new Side(res);
+            s = new Polygon(res);
             s.points.AddRange(new int[] { 4, 5, 6, 7 });
             res.sides.Add(s);
 
             return res;
         }
+        //static public Figure get_Sphere(float radius, int latitudeSegments, int longitudeSegments)
+        //{
+        //    Figure res = new Figure();
+        //    float pi = (float)Math.PI;
+
+        //    for (int lat = 0; lat <= latitudeSegments; lat++)
+        //    {
+        //        float theta = lat * pi / latitudeSegments;
+        //        float sinTheta = (float)Math.Sin(theta);
+        //        float cosTheta = (float)Math.Cos(theta);
+
+        //        for (int lon = 0; lon <= longitudeSegments; lon++)
+        //        {
+        //            float phi = lon * 2 * pi / longitudeSegments;
+        //            float sinPhi = (float)Math.Sin(phi);
+        //            float cosPhi = (float)Math.Cos(phi);
+
+        //            float x = cosPhi * sinTheta;
+        //            float y = cosTheta;
+        //            float z = sinPhi * sinTheta;
+
+        //            res.points.Add(new Point3D(radius * x, radius * y, radius * z));
+        //        }
+        //    }
+
+        //    // Генерация треугольников для покрытия поверхности сферы
+        //    for (int lat = 0; lat < latitudeSegments; lat++)
+        //    {
+        //        for (int lon = 0; lon < longitudeSegments; lon++)
+        //        {
+        //            int current = lat * (longitudeSegments + 1) + lon;
+        //            int next = current + longitudeSegments + 1;
+
+        //            res.sides.Add(new Side(res)
+        //            {
+        //                points = { current, next + 1, current + 1 }
+        //            });
+
+        //            res.sides.Add(new Side(res)
+        //            {
+        //                points = { current, next, next + 1 }
+        //            });
+        //        }
+        //    }
+
+        //    return res;
+        //}
+
 
     }
 }

@@ -11,7 +11,7 @@ namespace CornishRoom
 {
     public partial class Form1 : Form
     {
-        public List<Figure> scene = new List<Figure>();
+        public List<Object> scene = new List<Object>();
         public List<Light> lights = new List<Light>();   // список источников света
         public Color[,] pixels_color;                    // цвета пикселей для отображения на pictureBox
         public Point3D[,] pixels;
@@ -32,12 +32,10 @@ namespace CornishRoom
             pictureBox1.Image = new Bitmap(w, h);
             checkBox1.Visible = false;
             checkBox2.Visible = false;
-            checkBox3.Visible = false;
-            checkBox4.Visible = false;
             checkBox5.Visible = false;
             textBox1.Visible = false; 
             textBox2.Visible = false; 
-            textBox3.Visible    = false;
+            textBox3.Visible = false;
 
         }
 
@@ -49,11 +47,10 @@ namespace CornishRoom
             BackwardRayTracing(); 
             checkBox1.Visible = true;
             checkBox2.Visible = true; 
-            checkBox3.Visible = true;
             textBox1.Visible = true;
             textBox2.Visible = true;
             textBox3.Visible = true;
-            checkBox4.Visible = true;
+
             checkBox5.Visible = true;
             for (int i = 0; i < w; ++i){
                 for (int j = 0; j < h; ++j)
@@ -69,14 +66,14 @@ namespace CornishRoom
             scene.Clear();
             lights.Clear();
             //сама комната
-            Figure room = Figure.get_Cube(10);
+            Object room = Object.get_Cube(10);
             up_left = room.sides[0].getPoint(0);
             up_right = room.sides[0].getPoint(1);
             down_right = room.sides[0].getPoint(2);
             down_left = room.sides[0].getPoint(3);
 
             //ставим камеру
-            Point3D normal = Side.norm(room.sides[0]);                            // нормаль стороны комнаты
+            Point3D normal = Polygon.norm(room.sides[0]);                            // нормаль стороны комнаты
             Point3D center = (up_left + up_right + down_left + down_right) / 4;   // центр стороны комнаты
             cameraPoint = center + normal * 11;
 
@@ -88,26 +85,28 @@ namespace CornishRoom
             room.sides[3].drawing_pen = new Pen(Color.Red);
             
             room.fMaterial = new Material(0, 0, 0.05f, 0.7f);
-    
-            Sphere mirrirSphere = new Sphere(new Point3D(2f, 0f, -1f), 1.3f);
-                mirrirSphere.SetPen(new Pen(Color.White));
-          
-            mirrirSphere.fMaterial = new Material(0.9f, 0f, 0f, 0.1f, 1f);
-            Figure bigCube = Figure.get_Rectangle(1.5f,2f,6f);
+      //это параллелепипед
+            Object bigCube = Object.get_Rectangle(1.5f,2f,6f);
             bigCube.Offset(-0.5f, 2f, -4.6f);
             bigCube.RotateAround(-52, "CZ");
             bigCube.SetPen(new Pen(Color.HotPink));
             bigCube.fMaterial = new Material(0f, 0f, 0.3f, 0.7f, 1f);
-            Figure transCube = Figure.get_Cube(2f);
+            //куб
+            Object transCube = Object.get_Cube(2f);
             transCube.Offset(-3f, 2.5f, -3.9f);
             transCube.RotateAround(-10, "CZ");
             transCube.SetPen(new Pen(Color.Red));
             transCube.fMaterial = new Material(0f, 0f, 0.3f, 0.7f, 1f);
+            ////недосфера
+            //Figure sphere = Figure.get_Sphere(1, 8,8);
+            //sphere.fMaterial = new Material(10f, 0f, 0f, 0.1f, 1f);
+            //sphere.Offset(-0.5f, 2f, -4.6f);
+            //sphere.SetPen(new Pen(Color.Red));
+
             scene.Add(room);
-            scene.Add(mirrirSphere);
             scene.Add(bigCube);
             scene.Add(transCube);
-            
+            //  scene.Add(sphere);
             if (checkBox1.Checked)
             {            
                 //добавляем источники света
@@ -127,19 +126,7 @@ namespace CornishRoom
             {
                 bigCube.fMaterial = new Material(1f,0f, 0f, 0.1f,1);
             }
-     
-            //прозрачность параллелепипеда 
-            if (checkBox4.Checked)
-            {
-                bigCube.fMaterial = new Material(0f, 0.7f, 0.3f, 0.7f, 1f);
-            }
-     
-            //прозрачность куба
-            if (checkBox3.Checked)
-            {
-                transCube.fMaterial = new Material(0f, 0.7f, 0.3f, 0.7f, 1f);
-            }
-                
+               
             //зеркальность куба
             if (checkBox5.Checked)
             {
@@ -154,64 +141,88 @@ namespace CornishRoom
 
         }
 
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+
+        }
+
         public void BackwardRayTracing()
         {
             /*
-             Изображние с камеры в матрице пикселей,равной размеру экрана
-             */
-            GetPixels();
-            /*
-             Количество первичных лучей также известно – это общее
-             количество пикселей видового окна
-             */
-            for (int i = 0; i < w; ++i)
-                for (int j = 0; j < h; ++j)
-                {
-                    Ray r = new Ray(cameraPoint, pixels[i, j]);
-                    r.start = new Point3D(pixels[i, j]);
-                    Point3D color = RayTrace(r, 10, 1);//луч,кол-во итераций,коэфф
-                    if (color.x > 1.0f || color.y > 1.0f || color.z > 1.0f)
-                        color = Point3D.norm(color);
-                    pixels_color[i, j] = Color.FromArgb((int)(255 * color.x), (int)(255 * color.y), (int)(255 * color.z));
-                }
-        }
+      Получение изображения с камеры и заполнение матрицы пикселей, соответствующей размеру экрана.
+      */
+            get_Image();
 
-        // получение всех пикселей сцены
-        public void GetPixels()
-        {
             /*
-             Учитывая разницу между размером комнаты и экранным отображение приводим координаты к пикселям
+             Количество первичных лучей равно общему количеству пикселей в видовом окне.
              */
-            pixels = new Point3D[w, h];
-            pixels_color = new Color[w, h];
-            Point3D step_up = (up_right - up_left) / (w - 1);//отношение ширины комнаты к ширине экрана
-            Point3D step_down = (down_right - down_left) / (w - 1);//отношение высоты комнаты к высоте экрана
-            Point3D up = new Point3D(up_left);
-            Point3D down = new Point3D(down_left);
             for (int i = 0; i < w; ++i)
             {
-                Point3D step_y = (up - down) / (h - 1);
-                Point3D d = new Point3D(down);
                 for (int j = 0; j < h; ++j)
                 {
-                    pixels[i, j] = d;
-                    d += step_y;
+                    // луча от поозиции до текущего пикселя
+                    Ray r = new Ray(cameraPoint, pixels[i, j]);
+                    r.start = new Point3D(pixels[i, j]);
+
+                    // трассировки луча с учетом количества итераций и коэффициента
+                    Point3D color = RayTrace(r, 10, 1); 
+                    // Нормализация цвета, если он выходит за пределы допустимого диапазона
+                    if (color.x > 1.0f)
+                    {
+                        color.x = 1.0f;
+                    }
+                    if (color.y > 1.0f)
+                    {
+                        color.y = 1.0f;
+                    }
+                    if (color.z > 1.0f)
+                    {
+                        color.z = 1.0f;
+                    }
+                    pixels_color[i, j] = Color.FromArgb((int)(255 * color.x), (int)(255 * color.y), (int)(255 * color.z));
                 }
-                up += step_up;
-                down += step_down;
             }
         }
 
-        //видима ли точка пересечения луча с фигурой из источника света
+        // получение всех пикселей сцены
+        public void get_Image()
+        {
+           
+            pixels = new Point3D[w, h];
+            pixels_color = new Color[w, h];
+            // шаги по вертикали и горизонтали для пикселей
+            Point3D delta_y = (up_left - down_left) / (h - 1);
+            Point3D delta_x = (up_right - up_left) / (w - 1);
+
+            Point3D current_point = down_left;
+
+            for (int i = 0; i < h; ++i)
+            {
+                Point3D current_row_point = current_point;
+                for (int j = 0; j < w; ++j)
+                {
+                    pixels[j, i] = current_row_point;
+                    current_row_point += delta_x;
+                }
+                current_point += delta_y;
+            }
+        }
+
         public bool IsVisible(Point3D light_point, Point3D hit_point)
         {
-            float max_t = (light_point - hit_point).length(); //позиция источника света на луче
-            Ray r = new Ray(hit_point, light_point);
-            foreach (Figure fig in scene)
-                if (fig.FigureIntersection(r, out float t, out Point3D n))
-                    if (t < max_t && t > Figure.eps)
-                        return false;
-            return true;
+            float distanceToLight = (light_point - hit_point).length(); // Расстояние до источника света от точки пересечения
+
+            Ray rayToLight = new Ray(hit_point, light_point);
+
+            foreach (Object fig in scene)
+            {
+                if (fig.FigureIntersection(rayToLight, out float t, out Point3D n) && t < distanceToLight && t > Object.eps)
+                {
+                    return false; // если  обнаружено пересечение объекта со светом, то точка не видима
+                }
+            }
+
+            return true; // если ни с одним объектом не было обнаружено пересечение, то точка видима
         }
 
         public Point3D RayTrace(Ray r, int iter, float env)
@@ -226,7 +237,7 @@ namespace CornishRoom
             //угол падения острый
             bool refract_out_of_figure = false;
 
-            foreach (Figure fig in scene)
+            foreach (Object fig in scene)
             {
                 if (fig.FigureIntersection(r, out float intersect, out Point3D norm))
                     if (intersect < rey_fig_intersect || rey_fig_intersect == 0)// нужна ближайшая фигура к точке наблюдения
@@ -248,7 +259,6 @@ namespace CornishRoom
                 refract_out_of_figure = true;
             }
 
-
             //Точка пересечения луча с фигурой
             Point3D hit_point = r.start + r.direction * rey_fig_intersect;
             /*В точке пересечения луча с объектом строится три вторичных
@@ -256,7 +266,6 @@ namespace CornishRoom
               источника света (2), третий в направлении преломления
               прозрачной поверхностью (3).
              */
-
 
             foreach (Light light in lights)
             {
@@ -270,7 +279,6 @@ namespace CornishRoom
                 if (IsVisible(light.point_light, hit_point))//если точка пересечения луча с объектом видна из источника света
                     res_color += light.Shade(hit_point, normal, material.color, material.diffuse);
             }
-
 
             /*Для отраженного луча
               проверяется возможность
@@ -290,20 +298,19 @@ namespace CornishRoom
             if (material.reflection > 0)
             {
                 Ray reflected_ray = r.Reflect(hit_point, normal);
-                res_color += material.reflection * RayTrace(reflected_ray, iter - 1, env);
+                res_color += material.reflection * RayTrace(reflected_ray, iter - 1, env);//получаем цвет и учитываем его в итоговом цвете текущего луча
             }
-
 
             if (material.refraction > 0)
             {
-                //взависимости от того,из какой среды в какую,будет меняться коэффициент приломления
+                //взависимости от того,из какой среды в какую,будет меняться коэффициент преломления
                 float refract_coef;
                 if (refract_out_of_figure)
                     refract_coef = material.environment;
                 else
                     refract_coef = 1 / material.environment;
 
-                Ray refracted_ray = r.Refract(hit_point, normal, material.refraction, refract_coef);//создаем приломленный луч
+                Ray refracted_ray = r.Refract(hit_point, normal, material.refraction, refract_coef);//создаем преломленный луч
 
                 /*
                  Как и в предыдущем случае,

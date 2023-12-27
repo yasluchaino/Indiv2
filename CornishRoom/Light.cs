@@ -5,7 +5,7 @@ using System.Text;
 
 namespace CornishRoom
 {
-    public class Light : Figure           // источник света
+    public class Light : Object           // источник света
     {
         public Point3D point_light;       // точка, где находится источник света
         public Point3D color_light;       // цвет источника света
@@ -21,8 +21,12 @@ namespace CornishRoom
         {
             Point3D dir = point_light - hit_point;
             dir = Point3D.norm(dir);// направление луча 
-            //если угол между нормалью и направлением луча больше 90 градусов,то диффузное  освещение равно 0
-            Point3D diff = diffuse_coef * color_light * Math.Max(Point3D.scalar(normal, dir), 0);
+
+            float scalarProduct = Point3D.scalar(normal, dir);
+            float scalarResult = scalarProduct < 0 ? 0 : scalarProduct; 
+
+            Point3D diff = diffuse_coef * color_light * scalarResult;
+
             return new Point3D(diff.x * material_color.x, diff.y * material_color.y, diff.z * material_color.z);
         }
     }
